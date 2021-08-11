@@ -698,10 +698,6 @@ contains
     use EDParamsMod, only : ED_val_phen_a, ED_val_phen_b, ED_val_phen_c, ED_val_phen_chiltemp
     use EDParamsMod, only : ED_val_phen_mindayson, ED_val_phen_ncolddayslim, ED_val_phen_coldtemp
          
-    use FatesInterfaceTypesMod , only : hlm_current_year
-    use FatesInterfaceTypesMod , only : hlm_current_month
-    use FatesInterfaceTypesMod , only : hlm_current_day
-    use FatesInterfaceTypesMod , only : hlm_day_of_year
     !
     ! !ARGUMENTS:
     type(ed_site_type), intent(inout), target :: currentSite
@@ -1053,7 +1049,6 @@ contains
     ! LEAF OFF: DROUGHT DECIDUOUS DRYNESS - if the soil gets too dry, 
     ! and the leaves have already been on a while... 
     
-    !print*,225,currentSite%dstatus  = 3
     if ( (currentSite%dstatus == phen_dstat_moiston .or. &
           currentSite%dstatus == phen_dstat_timeon ) .and. &
          (model_day_int > numWaterMem) .and. &
@@ -1062,18 +1057,6 @@ contains
        currentSite%dstatus = phen_dstat_moistoff     ! alter status of site to 'leaves off'
        currentSite%dleafoffdate = model_day_int      ! record leaf on date           
     endif
-
-    if (hlm_current_year.eq.1989) then
-        if (hlm_day_of_year.eq.244) then
-                currentSite%dstatus = phen_dstat_moistoff
-        end if
-        !if (hlm_day_of_year.gt.244.and.hlm_day_of_year.lt.249) then
-        !        currentSite%dstatus = phen_dstat_moiston 
-        !end if
-        if (hlm_day_of_year.eq.249) then
-                currentSite%dstatus = phen_dstat_timeon
-        end if
-    end if
 
     call phenology_leafonoff(currentSite)
 
@@ -1088,8 +1071,6 @@ contains
     ! !USES:
     !
     ! !ARGUMENTS:
-    use FatesInterfaceTypesMod , only : hlm_current_year
-    use FatesInterfaceTypesMod , only : hlm_day_of_year
 
     type(ed_site_type), intent(inout), target :: currentSite
     !
@@ -1334,27 +1315,6 @@ contains
             endif !status
          endif !drought dec.
          
-         ! MS added hurricane deforliation
-         print*,ipft,EDPftvarcon_inst%woody(ipft),leaf_organ, leaf_drop_fraction 
-         if (EDPftvarcon_inst%woody(ipft).eq.itrue) then
-                if (currentSite%dstatus == phen_dstat_moistoff) then
-                        currentCohort%status_coh  = leaves_off
-                        currentCohort%laimemory   = leaf_c
-                        call PRTDeciduousTurnover(currentCohort%prt,ipft,leaf_organ, leaf_drop_fraction)
-                end if
-                if (currentSite%dstatus ==phen_dstat_timeon) then
-                        if (currentCohort%status_coh == leaves_off)then !is it the leaf-on day? Are the leaves currently off?    
-                                currentCohort%status_coh = leaves_on    ! Leaves are on, so change status to stop flow of carbon out of bstore. 
-                                if(store_c>nearzero) then
-                                        store_c_transfer_frac = min(EDPftvarcon_inst%phenflush_fraction(ipft)*currentCohort%laimemory,store_c)/store_c
-                                else
-                                        store_c_transfer_frac = 0.0_r8
-                                endif
-                                call PRTPhenologyFlush(currentCohort%prt, ipft,leaf_organ, store_c_transfer_frac)
-                                currentCohort%laimemory = 0.0_r8
-                        end if
-                end if
-         end if
          if(debug) call currentCohort%prt%CheckMassConservation(ipft,1)
 
             currentCohort => currentCohort%shorter
